@@ -96,10 +96,6 @@ PlayerFireHeight = 20
 ButtonWidth = 200
 ButtonHeight = SmallTextSize + 10
 
-InvaderRows = 5
-InvaderNum = 100
-RowCount = InvaderNum / InvaderRows
-
 Paused = False
 
 def TextObjs(Text, Font, Colour):
@@ -122,18 +118,6 @@ def ButtonGen(Text, Font, ButtonX, ButtonY, InactiveColour, ActiveColour, Functi
     pygame.draw.rect(GameDisplay, Black, [ButtonX, ButtonY, ButtonWidth, ButtonHeight])
     TextRect.center = (ButtonX + (ButtonWidth / 2), ButtonY + (ButtonHeight / 2))
     GameDisplay.blit(TextSurf, TextRect)
-
-
-def ShieldGen():
-    pass
-
-
-def InvaderGen():
-    pass
-
-
-def EnemyFireGen():
-    pass
 
 
 def WriteText(Text, Font, Colour, Location):
@@ -160,7 +144,7 @@ def PauseScreen():
 
         time.sleep(0.1)
 
-        pygame.draw.rect(GameDisplay, Black, TextRect)
+        GameDisplay.fill(Black)
         pygame.display.update()
 
         time.sleep(0.1)
@@ -203,17 +187,27 @@ def GameLoop():
 
     PlayerFireX = -100
     PlayerFireY = -100
+    PlayerFireSpeed = -5
+    PlayerBulletsX = [PlayerFireX]
+    PlayerBulletsY = [PlayerFireY]
+    PlayerBullets = [PlayerBulletsX, PlayerBulletsY]
+    ShotFired = False
 
     InvaderX = []
     InvaderY = []
-    Invaders = [InvaderX, InvaderY]
+    Tier = []
+    Invaders = [InvaderX, InvaderY, Tier]
+
+    InvaderNum = 100
 
     Type = 0
     SoundType = 0
     InvaderMoveType = 0
     InvaderDir = "Right"
-    InvaderSpeed = 5
+    InvaderSpeed = Tier3Width
+    Moved = 6
 
+    ##  Invader Initialisation
     for i in range(InvaderNum):
 
         if 0 <= i < 20:
@@ -223,12 +217,16 @@ def GameLoop():
             else:
                 InvaderX.append(InvaderX[i - 1] + 30)
 
+            Tier.append(3)
+
         elif 20 <= i < 40:
             InvaderY.append(80)
             if i == 20:
                 InvaderX.append(100)
             else:
                 InvaderX.append(InvaderX[i - 1] + 30)
+
+            Tier.append(2)
 
         elif 40 <= i < 60:
             InvaderY.append(120)
@@ -237,6 +235,8 @@ def GameLoop():
             else:
                 InvaderX.append(InvaderX[i - 1] + 30)
 
+            Tier.append(2)
+
         elif 60 <= i < 80:
             InvaderY.append(160)
             if i == 60:
@@ -244,12 +244,16 @@ def GameLoop():
             else:
                 InvaderX.append(InvaderX[i - 1] + 30)
 
+            Tier.append(1)
+
         elif 80 <= i <= 100:
             InvaderY.append(200)
             if i == 80:
                 InvaderX.append(100)
             else:
                 InvaderX.append(InvaderX[i - 1] + 30)
+
+            Tier.append(1)
 
     global Paused
 
@@ -268,10 +272,15 @@ def GameLoop():
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
                     PlayerMovePoints = 5
 
+                ##  Bullet Gen
                 if event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
-                    if PlayerFireY == -100 and PlayerFireX == -100:
+                    if not ShotFired:
                         PlayerFireX = PlayerX + PlayerWidth / 2 - 1
                         PlayerFireY = PlayerY + 2 - PlayerFireHeight
+                        PlayerBullets[0].append(PlayerFireX)
+                        PlayerBullets[1].append(PlayerFireY)
+                        ShotFired = True
+                        pygame.mixer.Sound.play(PlayerFireSound)
 
                 if event.key == pygame.K_p:
                     Paused = True
@@ -281,6 +290,7 @@ def GameLoop():
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a or event.key == pygame.K_RIGHT or event.key == pygame.K_d:
                     PlayerMovePoints = 0
 
+        ##  Bounce
         if PlayerX <= 20:
             PlayerX = 20
 
@@ -291,40 +301,87 @@ def GameLoop():
         GameDisplay.fill(Black)
         GameDisplay.blit(Player, (PlayerX, PlayerY))
 
-        GameDisplay.blit(PlayerFire, (PlayerFireX, PlayerFireY))
+        ##  Bullet out of bounds
+        for i in range(len(PlayerBullets[1])):
+            try:
 
+                GameDisplay.blit(PlayerFire, (PlayerBulletsX[i], PlayerBulletsY[i]))
+                PlayerBulletsY[i] += PlayerFireSpeed
+
+                if PlayerBulletsY[i] < 0 - PlayerFireHeight:
+                    ShotFired = False
+                    PlayerBulletsY.pop(i)
+                    PlayerBulletsX.pop(i)
+
+            except IndexError:
+                pass
+
+        ##  Invader Gen
         for i in range(InvaderNum):
-            if i < RowCount and Type < FPS:
-                GameDisplay.blit(Tier3_1, (Invaders[0][i], Invaders[1][i]))
-            elif i < RowCount and Type < FPS * 2:
-                GameDisplay.blit(Tier3_2, (Invaders[0][i], Invaders[1][i]))
+            try:
+                if Tier[i] == 3 and Type < FPS:
+                    GameDisplay.blit(Tier3_1, (Invaders[0][i], Invaders[1][i]))
+                elif Tier[i] == 3 and Type < FPS * 2:
+                    GameDisplay.blit(Tier3_2, (Invaders[0][i], Invaders[1][i]))
 
-            elif i < RowCount * 3 and Type < FPS:
-                GameDisplay.blit(Tier2_1, (Invaders[0][i], Invaders[1][i]))
-            elif i < RowCount * 3 and Type < FPS * 2:
-                GameDisplay.blit(Tier2_2, (Invaders[0][i], Invaders[1][i]))
+                elif Tier[i] == 2 and Type < FPS:
+                    GameDisplay.blit(Tier2_1, (Invaders[0][i], Invaders[1][i]))
+                elif Tier[i] == 2 and Type < FPS * 2:
+                    GameDisplay.blit(Tier2_2, (Invaders[0][i], Invaders[1][i]))
 
-            elif i < InvaderNum and Type < FPS:
-                GameDisplay.blit(Tier1_1, (Invaders[0][i], Invaders[1][i]))
-            elif i < InvaderNum and Type < FPS * 2:
-                GameDisplay.blit(Tier1_2, (Invaders[0][i], Invaders[1][i]))
+                elif Tier[i] == 1 and Type < FPS:
+                    GameDisplay.blit(Tier1_1, (Invaders[0][i], Invaders[1][i]))
+                elif Tier[i] == 1 and Type < FPS * 2:
+                    GameDisplay.blit(Tier1_2, (Invaders[0][i], Invaders[1][i]))
 
+            except IndexError:
+                pass
+
+        ##  Moves Invaders
         InvaderMoveType += 1
         if InvaderMoveType > FPS:
             InvaderMoveType = 0
 
-            for i in range(len(Invaders[0])):
-                if InvaderDir == "Right":
-                    if Invaders[0][i] < DisplayWidth - Tier3Width - 20:
+            if InvaderDir == "Right":
+                if Moved < 12:
+                    for i in range(len(Invaders[0])):
                         Invaders[0][i] += InvaderSpeed
-                    else:
-                        InvaderDir = "Left"
+                    Moved += 1
+                else:
+                    InvaderDir = "Left"
+                    Moved = 0
+                    for x in range(len(Invaders[1])):
+                        Invaders[1][x] += Tier1Height + 10
 
-                elif InvaderDir == "Left":
-                    if Invaders[0][i] > 10:
+            elif InvaderDir == "Left":
+                if Moved < 12:
+                    for i in range(len(Invaders[0])):
                         Invaders[0][i] -= InvaderSpeed
-                    else:
-                        InvaderDir = "Right"
+                    Moved += 1
+                else:
+                    InvaderDir = "Right"
+                    Moved = 0
+                    for x in range(len(Invaders[1])):
+                        Invaders[1][x] += Tier1Height + 10
+
+        ##  Collision detection
+        for i in range(len(Invaders[0])):
+            for n in range(len(PlayerBullets[0])):
+                try:
+
+                    if InvaderX[i] < PlayerBulletsX[n] < InvaderX[i] + Tier1Width:
+                        if PlayerBulletsY[n] <= InvaderY[i] + Tier1Height:
+                            InvaderX.pop(i)
+                            InvaderY.pop(i)
+                            Tier.pop(i)
+                            PlayerBulletsX.pop(n)
+                            PlayerBulletsY.pop(n)
+                            ShotFired = False
+                            InvaderNum -= 1
+                            pygame.mixer.Sound.play(InvaderKilledSound)
+
+                except IndexError:
+                    pass
 
         Type += 1
         if Type > FPS * 2:
