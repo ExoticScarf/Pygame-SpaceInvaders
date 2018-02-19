@@ -10,6 +10,9 @@ GameDisplay = pygame.display.set_mode((DisplayWidth, DisplayHeight))
 pygame.display.set_caption("Space Invaders")
 Clock = pygame.time.Clock()
 
+VSmallTextSize = 20
+VSmallText = pygame.font.Font("PressStart2P-Regular.ttf", VSmallTextSize)
+
 SmallTextSize = 40
 SmallText = pygame.font.Font("PressStart2P-Regular.ttf", SmallTextSize)
 
@@ -20,7 +23,7 @@ Black = (0, 0, 0)
 White = (255, 255, 255)
 Green = (0, 255, 0)
 
-FPS = 120
+FPS = 240
 
 Tier1_1 = pygame.image.load("Sprites\\Enemies\\Tier1Invader_Instance1.png")
 Tier1_2 = pygame.image.load("Sprites\\Enemies\\Tier1Invader_Instance2.png")
@@ -126,6 +129,21 @@ def WriteText(Text, Font, Colour, Location):
     GameDisplay.blit(TextSurf, TextRect)
 
 
+def GameWin(Score):
+    Win = True
+
+    while Win:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                Exit()
+
+        GameDisplay.fill(Black)
+        WriteText("You Win!", LargeText, White, (DisplayWidth/2, DisplayHeight/2 - LargeTextSize/2))
+        WriteText("Your Score: " + str(Score), VSmallText, White, (DisplayWidth/2, DisplayHeight/2 + 50))
+        ButtonGen("Main Menu", SmallText, DisplayWidth/2 - ButtonWidth/2, DisplayHeight/2 + LargeTextSize, White, Green, MainMenu)
+        pygame.display.update()
+
+
 def PauseScreen():
     TextSurf, TextRect = TextObjs("Paused", SmallText, White)  ##  Surface is the text Rect is the rectangle around the text when generated
     TextRect.center = (DisplayWidth / 2, DisplayHeight / 2)
@@ -172,6 +190,7 @@ def MainMenu():
             if event.type == pygame.QUIT:
                 Exit()
 
+        GameDisplay.fill(Black)
         WriteText("Space", LargeText, White, (DisplayWidth / 2, LargeTextSize / 2 + 10))
         WriteText("Invaders", LargeText, White, (DisplayWidth / 2, LargeTextSize * 1.5 + 10))
 
@@ -206,6 +225,7 @@ def GameLoop():
     InvaderDir = "Right"
     InvaderSpeed = Tier3Width
     Moved = 6
+    Score = 0
 
     ##  Invader Initialisation
     for i in range(InvaderNum):
@@ -371,11 +391,21 @@ def GameLoop():
 
                     if InvaderX[i] < PlayerBulletsX[n] < InvaderX[i] + Tier1Width:
                         if PlayerBulletsY[n] <= InvaderY[i] + Tier1Height:
+
+                            if Tier[i] == 1:
+                                Score += 10
+                            elif Tier[i] == 2:
+                                Score += 25
+                            elif Tier[i] == 3:
+                                Score += 40
+
                             InvaderX.pop(i)
                             InvaderY.pop(i)
                             Tier.pop(i)
+
                             PlayerBulletsX.pop(n)
                             PlayerBulletsY.pop(n)
+
                             ShotFired = False
                             InvaderNum -= 1
                             pygame.mixer.Sound.play(InvaderKilledSound)
@@ -399,6 +429,14 @@ def GameLoop():
             pygame.mixer.Sound.play(BackgroundSound1)
         elif SoundType == FPS * 4:
             pygame.mixer.Sound.play(BackgroundSound3)
+
+        if len(Invaders[2]) == 0:
+            GameWin(Score)
+
+        if len(str(Score)) != 4:
+            WriteText("Score: " + "0" * (4 - len(str(Score))) + str(Score), VSmallText, White, (120, VSmallTextSize/2 + 5))
+        else:
+            WriteText("Score: " + str(Score), VSmallText, White, (120, VSmallTextSize / 2 + 5))
 
         pygame.display.update()
         Clock.tick(FPS)
